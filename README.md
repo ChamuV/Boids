@@ -15,6 +15,7 @@ Everything is organised to keep the **core simulation**, **visualisation**, and 
 
 ## 📁 Project Structure
 
+```bash
 Boids/
 │
 ├── README.md
@@ -44,6 +45,7 @@ Boids/
 └── assets/
 ├── demo.gif                         # Animations for README
 └── screenshots/                     # PNG/JPEG images
+```
 
 ---
 
