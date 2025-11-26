@@ -68,18 +68,22 @@ Together, these create smooth, emergent flocking behaviour even though each rule
 
 ```bash
 pip install -r requirements.txt
+```
 
 ### 2. Run the baseline simulation
 
 ```bash
 python -m simulator.experiments.baseline
+```
 
 ### 3. Run another experiment
 
 ```bash
 python -m simulator.experiments.alignment_test
+```
 
 ### 4. Try the pygame renderer
 
 ```bash
 python -m simulator.visualisers.pygame_view 
+```
