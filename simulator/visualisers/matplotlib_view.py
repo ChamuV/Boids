@@ -1,30 +1,90 @@
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Polygon
 
 from simulator.core import BoidSimulation
 
-def run_mpl_2d(sim: BoidSimulation, interval_ms: int = 30) -> None:
+def create_triangle(position, velocity, scale=0.15):
     """
-    Simple 2D matplotlib visualiser for BoidSimulation.
-    Assumes sim.dim == 2
+    Create a rotated triangle patch at `position`,
+    pointing in the direction of `velocity`.
+    """
+    # If velocity is zero, keep previous orientation
+    vx, vy = velocity
+    angle = np.arctan2(vy, vx)
+
+    # Base triangle (pointing right, before rotation)
+    triangle = np.array([
+        [scale, 0],          # nose
+        [-scale*0.6, scale*0.4],  # back top
+        [-scale*0.6, -scale*0.4], # back bottom
+    ])
+
+    # Rotation matrix
+    c, s = np.cos(angle), np.sin(angle)
+    R = np.array([[c, -s], [s,  c]])
+
+    # Rotate + translate
+    rotated = triangle @ R.T + position
+
+    return Polygon(rotated, closed=True, facecolor="#08306B", edgecolor="none")
+
+
+def run_mpl_2d(sim: BoidSimulation, interval_ms: int = 30):
+    """
+    Render boids as rotated triangles, updated each frame.
     """
     if sim.dim != 2:
-        raise ValueError("run_mpl_2 only supports 2D simulations.")
-    
-    fig, ax = plt.subplots(figsize=(8,8))
+        raise ValueError("run_mpl_2d only supports dim=2 simulations")
 
-    # initial scatter
-    scat = ax.scatter(sim.pos[:,0], sim.pos[:,1], s= 50)
+    fig, ax = plt.subplots(figsize=(6, 6))  # aesthetic background
 
     ax.set_xlim(0, sim.world_size[0])
     ax.set_ylim(0, sim.world_size[1])
-    ax.set_aspect('equal', adjustable='box')
-    ax.set_title("Boids Simulation (2D)")
+    ax.set_aspect("equal")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
 
-    def update(frame):
+    # Create triangle patches
+    patches = []
+    for i in range(sim.n):
+        tri = create_triangle(sim.pos[i], sim.vel[i])
+        ax.add_patch(tri)
+        patches.append(tri)
+
+    # Animation update function
+    def update(_frame):
         sim.step()
-        scat.set_offsets(sim.pos)
-        return scat,
+        for i, tri in enumerate(patches):
+            vx, vy = sim.vel[i]
+            angle = np.arctan2(vy, vx)
 
-    _ani = FuncAnimation(fig, update, interval=interval_ms, blit=True)
+            # Base triangle (pointing right)
+            scale = 0.15
+            base = np.array([
+                [scale, 0],
+                [-scale*0.6, scale*0.4],
+                [-scale*0.6, -scale*0.4],
+            ])
+
+            # Rotate
+            c, s = np.cos(angle), np.sin(angle)
+            R = np.array([[c, -s], [s, c]])
+            rotated = base @ R.T + sim.pos[i]
+
+            # Update polygon coordinates
+            tri.set_xy(rotated)
+
+        return patches
+
+    ani = FuncAnimation(
+        fig,
+        update,
+        interval=interval_ms,
+        blit=False,   
+        repeat=True
+    )
+
     plt.show()
