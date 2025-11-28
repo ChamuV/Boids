@@ -25,22 +25,24 @@ class BoidSimulation:
             n_boids: int = 50,
             dim: int = 2,
 
-            align_weight: float = 1.0,
-            cohesion_weight: float = 0.8,
-            separation_weight: float = 1.5,
+            align_weight: float = 0.9,
+            cohesion_weight: float = 0.2,
+            separation_weight: float = 1.2,
 
-            align_radius: float = 1.0,
+            align_radius: float = 2.0,
             cohesion_radius: float = 1.0,
-            separation_radius: float = 0.4,
+            separation_radius: float = 0.8,
 
-            max_speed: float = 0.03,
-            max_force: float = 0.01,
+            max_speed: float = 0.05,
+            max_force: float = 0.02,
 
             world_size = (10.0, 10.0, 10.0),
 
             obstacles = None,
             obstacle_weight: float = 2.0,
             obstacle_influence: float = 0.5,
+
+            noise_std: float = 0.02,
 
             rng: np.random.Generator | None = None
         ):
@@ -61,6 +63,8 @@ class BoidSimulation:
 
         self.max_speed = max_speed
         self.max_force = max_force
+
+        self.noise_std = noise_std
 
         self.rng = rng if rng is not None else np.random.default_rng()
 
@@ -179,6 +183,9 @@ class BoidSimulation:
                 self.separation_weight * separation +
                 self.obstacle_weight * obstacle_force
             )
+            # Small random "wander"
+            if self.noise_std > 0:
+                steer += self.rng.normal(scale=self.noise_std, size=self.dim)
 
             # Limit steering + speed
             steer = self._limit_vec(steer, self.max_force)
