@@ -22,29 +22,30 @@ Boids/
 ├── requirements.txt
 │
 ├── simulator/
-│   ├── init.py
-│   ├── main.py                  # Main file fore running
-│   ├── core.py                  # Core BoidSimulation class (state + rules)
-│   ├── cli.py                   # interface for parameter selection
+│   ├── __init__.py              # Makes 'simulator' a Python package
+│   ├── __main__.py              # Allows `python -m simulator`
+│   ├── cli.py                   # Command-line interface (select experiment + params)
+│   ├── core.py                  # BoidSimulation class (physics + rules + species)
+│   ├── main.py                  # Optional entry script (not always needed)
 │   │
 │   ├── visualisers/
-│   │   ├── matplotlib_view.py   # Simple 2D scatter animation in matplotlib
-│   │   └──  pygame_view.py       # Realtime interactive Pygame renderer
+│   │   ├── matplotlib_view.py   # Matplotlib rotated-triangle animation
+│   │   └── pygame_view.py       # (Optional) Real-time Pygame renderer
 │   │
 │   ├── experiments/
-│   │   ├── baseline.py                  # Basic flocking demo
-│   │   ├── grouping.py                  # Grouping of flocks based on species
+│   │   ├── baseline.py                  # Standard flocking demo
+│   │   ├── grouping.py                  # Multi-species flock segregation
 │   │   ├── obstacles.py                 # Obstacle avoidance behaviour
-│   │   ├── neighbourhood_radius_test.py # Explore radii sensitivity
-│   │   ├── speed_vs_force_test.py       # Stability analysis
+│   │   ├── neighbourhood_radius_test.py # Explore influence of radii
+│   │   ├── speed_vs_force_test.py       # Stability / parameter sweep
 │   │
 │   └── notebooks/
-│       ├── boids_intro.ipynb            # Explanation & interactive plots
-│       ├── flocking_metrics.ipynb       # Quantitative flock analysis
+│       ├── boids_intro.ipynb            # Intro explanation + demos
+│       ├── flocking_metrics.ipynb       # Analysis, clustering, diagnostics
 │
 └── assets/
-├── demo.gif                         # Animations for README
-└── screenshots/                     # PNG/JPEG images
+    ├── demo.gif                         # Demo animations for README
+    └── screenshots/                     # Saved PNG/JPEG images
 ```
 
 ---
@@ -75,16 +76,22 @@ pip install -r requirements.txt
 ### 2. Run the baseline simulation
 
 ```bash
-python -m simulator.experiments.baseline
+python -m simulator -exp baseline
 ```
 
-### 3. Run another experiment
+### 3. Run grouping (multi-species)
 
 ```bash
-python -m simulator.experiments.alignment_test
+python -m simulator -exp grouping --num-species 3 --species-repulsion 2.0
 ```
 
-### 4. Try the pygame renderer
+### 4. Run obstacle-avoidance
+
+```bash
+python -m simulator -exp obstacles
+```
+
+### 5. Try the pygame renderer
 
 ```bash
 python -m simulator.visualisers.pygame_view 
