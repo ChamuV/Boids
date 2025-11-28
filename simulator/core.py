@@ -42,6 +42,8 @@ class BoidSimulation:
             obstacle_weight: float = 2.0,
             obstacle_influence: float = 0.5,
 
+            cross_species_repulsion: float = 1.0,
+
             noise_std: float = 0.02,
 
             rng: np.random.Generator | None = None
@@ -71,6 +73,9 @@ class BoidSimulation:
         self.obstacles = obstacles or []
         self.obstacle_weight = obstacle_weight
         self.obstacle_influence = obstacle_influence
+
+        self.cross_species_repulsion = cross_species_repulsion
+        self.species = np.zeros(self.n, dtype=int)  # species IDs for each boid
 
         # World size (tuple of length dim)
         self.world_size = np.array(world_size[:dim])
@@ -104,7 +109,7 @@ class BoidSimulation:
             p = self.pos[i]
             v = self.vel[i]
 
-            # Offsets and distances to all other boids
+                        # Offsets and distances to all other boids
             offsets = self.pos - p        # shape (n, dim)
             dists = np.linalg.norm(offsets, axis=1)
 
@@ -117,6 +122,8 @@ class BoidSimulation:
             cntC = 0  # cohesion neighbours
             cntS = 0  # separation neighbours
 
+            si = self.species[i]  # species of this boid
+
             # Loop over all other boids explicitly 
             for j in range(self.n):
                 if j == i:
@@ -126,23 +133,36 @@ class BoidSimulation:
                 if d <= 0.0:
                     continue
 
-                # Alignment: match average heading
-                if d < self.align_radius:
-                    align_sum += self.vel[j]
-                    cntA += 1
+                sj = self.species[j]
+                same_species = (si == sj)
 
-                # Cohesion: move towards centre of mass
-                if d < self.cohesion_radius:
-                    cohesion_sum += self.pos[j]
-                    cntC += 1
+                # Same species: full boids rules
+                if same_species:
+                    # Alignment: match average heading
+                    if d < self.align_radius:
+                        align_sum += self.vel[j]
+                        cntA += 1
 
-                # Separation: repel if too close
-                if d < self.separation_radius:
-                    # inverse-square weighting for stronger nearby repulsion
-                    sep_sum -= offsets[j] / (d**2 + 1e-6)
-                    cntS += 1
+                    # Cohesion: move towards centre of mass
+                    if d < self.cohesion_radius:
+                        cohesion_sum += self.pos[j]
+                        cntC += 1
 
-                        # Turn sums into rule vectors 
+                    # Separation: repel if too close
+                    if d < self.separation_radius:
+                        sep_sum -= offsets[j] / (d**2 + 1e-6)
+                        cntS += 1
+
+                # Different species: only repulsion (stronger, slightly longer range) 
+                else:
+                    cross_sep_radius = self.separation_radius * 1.5
+                    if d < cross_sep_radius:
+                        sep_sum -= (
+                            self.cross_species_repulsion
+                            * offsets[j] / (d**2 + 1e-6)
+                        )
+
+            # Turn sums into rule vectors 
             if cntA > 0:
                 align = align_sum / cntA
             else:
@@ -157,7 +177,7 @@ class BoidSimulation:
             if cntS > 0:
                 separation = sep_sum
             else:
-                separation = np.zeros(self.dim)
+                separation = sep_sum  # might contain only cross-species repulsions
 
             # Obstacle avoidance
             obstacle_force = np.zeros(self.dim)

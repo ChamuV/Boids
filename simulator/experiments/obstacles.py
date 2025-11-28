@@ -32,6 +32,7 @@ def main(
     separation: float = 1.5,
     n_obstacles: int = 3,
     obstacles_str: str = "",
+    **kwargs,
 ) -> None:
     """
     Obstacle-avoiding flocking demo with configurable parameters.

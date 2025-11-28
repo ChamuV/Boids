@@ -1,11 +1,12 @@
 import argparse
 
-from simulator.experiments import baseline, obstacles
+from simulator.experiments import baseline, obstacles, grouping
 
 # Define the available experiments
 EXPERIMENTS = {
     "baseline": baseline.main,
     "obstacles": obstacles.main,  
+    "grouping": grouping.main,
 }
 
 # Create the argument parser for setting parameters for  simulation
@@ -65,6 +66,20 @@ def build_parser():
     help='Obstacle config as "x,y,r;x,y,r;..." (for obstacles experiment).',
     )
 
+    parser.add_argument(
+    "--num-species",
+    type=int,
+    default=2,
+    help="Number of species for the 'grouping' experiment.",
+    )
+
+    parser.add_argument(
+    "--species-repulsion",
+    type=float,
+    default=1.0,
+    help="Extra repulsion strength between different species (grouping experiment).",
+    )
+
     return parser
 
 
@@ -88,5 +103,10 @@ def main():
     if args.experiment == "obstacles":
         common_kwargs["n_obstacles"] = args.n_obstacles
         common_kwargs["obstacles_str"] = args.obstacles
+
+    # Extra args for the grouping experiment
+    if args.experiment == "grouping":
+        common_kwargs["num_species"] = args.num_species
+        common_kwargs["species_repulsion"] = args.species_repulsion
 
     exp_fn(**common_kwargs)

@@ -23,18 +23,18 @@ Boids/
 │
 ├── simulator/
 │   ├── init.py
+│   ├── main.py                  # Main file fore running
 │   ├── core.py                  # Core BoidSimulation class (state + rules)
-│   ├── utils.py                 # Vector helpers, limit(), geometry utilities
+│   ├── cli.py                   # interface for parameter selection
 │   │
 │   ├── visualisers/
 │   │   ├── matplotlib_view.py   # Simple 2D scatter animation in matplotlib
-│   │   ├── pygame_view.py       # Realtime interactive Pygame renderer
-│   │   └── opengl_view.py       # (Optional) High-performance OpenGL renderer
+│   │   └──  pygame_view.py       # Realtime interactive Pygame renderer
 │   │
 │   ├── experiments/
 │   │   ├── baseline.py                  # Basic flocking demo
-│   │   ├── alignment_test.py            # Vary alignment strengths
-│   │   ├── separation_test.py           # Visualise separation behaviour
+│   │   ├── grouping.py                  # Grouping of flocks based on species
+│   │   ├── obstacles.py                 # Obstacle avoidance behaviour
 │   │   ├── neighbourhood_radius_test.py # Explore radii sensitivity
 │   │   ├── speed_vs_force_test.py       # Stability analysis
 │   │
