@@ -1,10 +1,11 @@
 import argparse
 
-from simulator.experiments import baseline
+from simulator.experiments import baseline, obstacles
 
 # Define the available experiments
 EXPERIMENTS = {
     "baseline": baseline.main,
+    "obstacles": obstacles.main,  
 }
 
 # Create the argument parser for setting parameters for  simulation
@@ -50,6 +51,20 @@ def build_parser():
         help="Separation weight",
     )
 
+    parser.add_argument(
+        "--n-obstacles",
+        type=int,
+        default=3,
+        help="Number of obstacles (only for obstacle experiment)",
+    )
+
+    parser.add_argument(
+    "--obstacles",
+    type=str,
+    default="",
+    help='Obstacle config as "x,y,r;x,y,r;..." (for obstacles experiment).',
+    )
+
     return parser
 
 
@@ -62,10 +77,16 @@ def main():
     if exp_fn is None:
         raise ValueError(f"Unknown experiment: {args.experiment!r}")
 
-    # Call the experiment, passing in CLI parameters
-    exp_fn(
-        N=args.num_boids,
-        align=args.align,
-        cohesion=args.cohesion,
-        separation=args.separation,
+    common_kwargs = dict(
+    N=args.num_boids,
+    align=args.align,
+    cohesion=args.cohesion,
+    separation=args.separation,
     )
+
+    # Extra args for the obstacles experiment
+    if args.experiment == "obstacles":
+        common_kwargs["n_obstacles"] = args.n_obstacles
+        common_kwargs["obstacles_str"] = args.obstacles
+
+    exp_fn(**common_kwargs)

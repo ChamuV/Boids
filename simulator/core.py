@@ -1,5 +1,12 @@
 import numpy as np
 
+from dataclasses import dataclass
+
+@dataclass
+class CircleObstacle:
+    centre : np.ndarray  # shape (dim,)
+    radius : float
+
 class BoidSimulation:
     """
     Core Boids / flocking simulation.
@@ -30,6 +37,11 @@ class BoidSimulation:
             max_force: float = 0.01,
 
             world_size = (10.0, 10.0, 10.0),
+
+            obstacles = None,
+            obstacle_weight: float = 2.0,
+            obstacle_influence: float = 0.5,
+
             rng: np.random.Generator | None = None
         ):
         assert dim in (2, 3), "Only 2D and 3D simulations are supported."
@@ -51,6 +63,10 @@ class BoidSimulation:
         self.max_force = max_force
 
         self.rng = rng if rng is not None else np.random.default_rng()
+
+        self.obstacles = obstacles or []
+        self.obstacle_weight = obstacle_weight
+        self.obstacle_influence = obstacle_influence
 
         # World size (tuple of length dim)
         self.world_size = np.array(world_size[:dim])
@@ -122,7 +138,7 @@ class BoidSimulation:
                     sep_sum -= offsets[j] / (d**2 + 1e-6)
                     cntS += 1
 
-            # Turn sums into rule vectors 
+                        # Turn sums into rule vectors 
             if cntA > 0:
                 align = align_sum / cntA
             else:
@@ -139,11 +155,29 @@ class BoidSimulation:
             else:
                 separation = np.zeros(self.dim)
 
+            # Obstacle avoidance
+            obstacle_force = np.zeros(self.dim)
+            for obs in self.obstacles:
+                centre = obs.centre[:self.dim]
+                diff = centre - p
+                dist = np.linalg.norm(diff)
+                if dist < 1e-8:
+                    continue
+
+                effective_r = obs.radius + self.obstacle_influence
+                if dist < effective_r:
+                    # direction away from obstacle centre
+                    away = -diff / dist
+                    # strength increases as we get closer to the obstacle
+                    strength = (effective_r - dist) / effective_r  # in [0, 1]
+                    obstacle_force += away * strength
+
             # Combine with weights
             steer = (
                 self.align_weight * align +
                 self.cohesion_weight * cohesion +
-                self.separation_weight * separation
+                self.separation_weight * separation +
+                self.obstacle_weight * obstacle_force
             )
 
             # Limit steering + speed

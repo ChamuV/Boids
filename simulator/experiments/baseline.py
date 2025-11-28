@@ -6,6 +6,7 @@ def main(
         align: float = 1.0,
         cohesion: float = 1.0,
         separation: float = 1.5,
+        **kwargs,
 ) -> None:
     """
     Baseline flocking demo with configurable parameters.

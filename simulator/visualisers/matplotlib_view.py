@@ -47,6 +47,18 @@ def run_mpl_2d(sim: BoidSimulation, interval_ms: int = 30):
     ax.set_yticks([])
     ax.set_frame_on(False)
 
+    # Draw obstacles if any
+    for obs in getattr(sim, "obstacles", []):
+        circ = plt.Circle(
+            (obs.centre[0], obs.centre[1]),
+            obs.radius,
+            facecolor="#f0efe9",
+            edgecolor="#999999",
+            linewidth=1.0,
+            alpha=1.0,
+        )
+        ax.add_patch(circ)
+
     # Create triangle patches
     patches = []
     for i in range(sim.n):
