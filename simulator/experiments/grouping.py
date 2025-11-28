@@ -11,6 +11,7 @@ def main(
     separation: float = 1.0,
     num_species: int = 2,
     species_repulsion: float = 1.0,
+    **kwargs
 ) -> None:
     """
     Grouping experiment:

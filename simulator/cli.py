@@ -1,12 +1,13 @@
 import argparse
 
-from simulator.experiments import baseline, obstacles, grouping
+from simulator.experiments import baseline, obstacles, grouping, predator_chase
 
 # Define the available experiments
 EXPERIMENTS = {
     "baseline": baseline.main,
     "obstacles": obstacles.main,  
     "grouping": grouping.main,
+    "predator-chase": predator_chase.main, 
 }
 
 # Create the argument parser for setting parameters for  simulation
@@ -80,6 +81,26 @@ def build_parser():
     help="Extra repulsion strength between different species (grouping experiment).",
     )
 
+    parser.add_argument(
+    "--num-predators",
+    type=int,
+    default=0,
+    help="Number of predators in the predator_chase experiment.",
+    )
+
+    parser.add_argument(
+    "--predator-radius",
+    type=float,
+    default=2.5,
+    help="Chase radius within which predators detect prey.",
+    )
+
+    parser.add_argument(
+    "--predator-eat",
+    action="store_true",
+    help="If set, predators can 'eat' prey when they get very close.",
+    )
+
     return parser
 
 
@@ -108,5 +129,11 @@ def main():
     if args.experiment == "grouping":
         common_kwargs["num_species"] = args.num_species
         common_kwargs["species_repulsion"] = args.species_repulsion
+
+    # Extra args for the predator_chase experiment
+    if args.experiment == "predator-chase":
+        common_kwargs["num_predators"] = args.num_predators
+        common_kwargs["predator_radius"] = args.predator_radius
+        common_kwargs["predator_eat"] = args.predator_eat
 
     exp_fn(**common_kwargs)
