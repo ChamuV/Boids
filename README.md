@@ -19,31 +19,28 @@ Core simulation, visualisation, and experiments are kept **strictly separate**.
 ```bash
 Boids/
 │
+├── LICENSE
 ├── README.md
 ├── requirements.txt
 │
-├── simulator/
-│   ├── __init__.py              # Makes 'simulator' a Python package
-│   ├── __main__.py              # Allows `python -m simulator`
-│   ├── cli.py                   # Command-line interface (experiments + params)
-│   ├── core.py                  # BoidSimulation class (physics + rules + species)
-│   ├── main.py                  # (Optional) simple entry script
-│   │
-│   ├── visualisers/
-│   │   ├── matplotlib_view.py   # Matplotlib animation
-│   │   └── pygame_sandbox.py    # Interactive Pygame "playground" UI
-│   │
-│   └── experiments/
-│       ├── baseline.py                  # Standard flocking demo
-│       ├── grouping.py                  # Multi-species flock segregation
-│       ├── obstacles.py                 # Obstacle avoidance behaviour
-│       ├── predator_chase.py            # Predators chasing prey
-│       ├── neighbourhood_radius_test.py # Explore influence of radii
-│       └── speed_vs_force_test.py       # Stability / parameter sweep
-│
-└── assets/
-    ├── demo.gif                         # Demo animations for README / site
-    └── screenshots/                     # Saved PNG/JPEG images
+└── simulator/
+    ├── __init__.py              # Makes 'simulator' a Python package
+    ├── __main__.py              # Allows `python -m simulator`
+    ├── cli.py                   # Command-line interface (experiments + params)
+    ├── core.py                  # BoidSimulation class (physics + rules + species)
+    ├── main.py                  # (Optional) simple entry script
+    │
+    ├── visualisers/
+    │   ├── matplotlib_view.py   # Matplotlib animation
+    │   └── pygame_sandbox.py    # Interactive Pygame "playground" UI
+    │
+    └── experiments/
+        ├── baseline.py                  # Standard flocking demo
+        ├── grouping.py                  # Multi-species flock segregation
+        ├── obstacles.py                 # Obstacle avoidance behaviour
+        ├── predator_chase.py            # Predators chasing prey
+        ├── neighbourhood_radius_test.py # Explore influence of radii
+        └── speed_vs_force_test.py       # Stability / parameter sweep
 ```
 
 ---
@@ -149,7 +146,8 @@ Summary of all flags:
 ```
 
 ---
-🎮 Pygame Sandbox (Interactive Mode)
+
+## 🎮 Pygame Sandbox (Interactive Mode)
 
 The interactive sandbox lets you click to place obstacles, drag sliders, and tweak behaviour in real time.
 
@@ -170,3 +168,9 @@ Features:
 - Boids rendered as rotating triangles
 - Predators rendered as circles
 - Instant parameter changes (no restart needed)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
