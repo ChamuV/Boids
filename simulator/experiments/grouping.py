@@ -5,51 +5,37 @@ from simulator.visualisers.matplotlib_view import run_mpl_2d
 
 
 def main(
-    N: int = 90,
-    align: float = 1.0,
-    cohesion: float = 0.4,
-    separation: float = 1.0,
-    num_species: int = 2,
-    species_repulsion: float = 1.0,
-    **kwargs
+        N: int = 80,
+        align: float = 1.0,
+        cohesion: float = 1.0,
+        separation: float = 1.5,
+        num_species: int = 3,
+        species_repulsion: float = 1.0,
+        boundary: str = "wrap",
+        **kwargs,
 ) -> None:
     """
-    Grouping experiment:
-    - Each species flocks with its own kind (alignment/cohesion/separation)
-    - Different species repel each other with strength `species_repulsion`
-      via cross_species_repulsion in BoidSimulation.
-    - Initial positions are fully random; species are randomly mixed.
-    """
-    world_w, world_h = 10.0, 10.0
-    dim = 2
+    Grouping demo: several species that flock with their own kind
+    and repel other species.
 
-    # Clamp species count to [1, N]
-    num_species = max(1, min(num_species, N))
+    Species IDs are used by:
+      - core.BoidSimulation (cross-species repulsion)
+      - matplotlib_view (for colouring).
+    """
 
     sim = BoidSimulation(
         n_boids=N,
-        dim=dim,
+        dim=2,
         align_weight=align,
         cohesion_weight=cohesion,
         separation_weight=separation,
-        world_size=(world_w, world_h),
         cross_species_repulsion=species_repulsion,
+        boundary_mode=boundary,
+        # speeds, noise, etc. use core defaults
     )
 
-    rng = sim.rng
-
-    # Assign species labels 0..num_species-1 roughly evenly, but mixed
-    idx = np.arange(sim.n)
-    rng.shuffle(idx)
-
-    base = sim.n // num_species
-    remainder = sim.n % num_species
-
-    start = 0
-    for s in range(num_species):
-        count = base + (1 if s < remainder else 0)
-        sel = idx[start:start + count]
-        sim.species[sel] = s
-        start += count
+    # Assign random species IDs in [0, num_species-1]
+    rng = np.random.default_rng(0)
+    sim.species = rng.integers(0, num_species, size=N)
 
     run_mpl_2d(sim)

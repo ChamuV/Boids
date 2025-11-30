@@ -3,10 +3,11 @@ import numpy as np
 from simulator.core import BoidSimulation, CircleObstacle
 from simulator.visualisers.matplotlib_view import run_mpl_2d
 
+
 def parse_obstacles(obstacles_str: str, world_size):
     """
     Parse a string like "3,5,0.8;7,3,1.0" into a list of CircleObstacle.
-    world_size is used only so you can sanity-check later if you like.
+    world_size is only for sanity checks if you want them later.
     """
     obstacles = []
     if not obstacles_str.strip():
@@ -25,6 +26,7 @@ def parse_obstacles(obstacles_str: str, world_size):
         )
     return obstacles
 
+
 def main(
     N: int = 80,
     align: float = 1.0,
@@ -32,6 +34,7 @@ def main(
     separation: float = 1.5,
     n_obstacles: int = 3,
     obstacles_str: str = "",
+    boundary: str = "wrap",
     **kwargs,
 ) -> None:
     """
@@ -43,7 +46,7 @@ def main(
     # If user provided explicit obstacles, use them
     obstacles = parse_obstacles(obstacles_str, (world_w, world_h))
     if not obstacles:
-        # Otherwise, create n_obstacles at fixed or random locations
+        # Otherwise, create n_obstacles at random locations
         rng = np.random.default_rng(42)
         for _ in range(n_obstacles):
             centre = np.array([
@@ -53,7 +56,7 @@ def main(
             radius = rng.uniform(0.5, 1.2)
             obstacles.append(CircleObstacle(centre=centre, radius=radius))
 
-    sim = BoidSimulation( 
+    sim = BoidSimulation(
         n_boids=N,
         dim=2,
         align_weight=align,
@@ -63,6 +66,8 @@ def main(
         obstacles=obstacles,
         obstacle_weight=2.0,
         obstacle_influence=0.7,
+        boundary_mode=boundary,
+        # speeds, noise, etc. from core defaults
     )
 
     run_mpl_2d(sim)

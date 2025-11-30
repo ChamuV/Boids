@@ -101,6 +101,14 @@ def build_parser():
     help="If set, predators can 'eat' prey when they get very close.",
     )
 
+    parser.add_argument(
+    "--boundary",
+    type=str,
+    default="wrap",
+    choices=["wrap", "bounce", "avoid"],
+    help="Boundary mode: wrap (torus), bounce (reflect), avoid (repulsive walls).",
+    )
+
     return parser
 
 
@@ -118,6 +126,7 @@ def main():
     align=args.align,
     cohesion=args.cohesion,
     separation=args.separation,
+    boundary_mode=args.boundary,
     )
 
     # Extra args for the obstacles experiment

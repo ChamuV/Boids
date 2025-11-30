@@ -91,7 +91,14 @@ python -m simulator -exp grouping --num-species 3 --species-repulsion 2.0
 python -m simulator -exp obstacles
 ```
 
-### 5. Try the pygame renderer
+### 5. Run predator chase with / without kill
+
+```bash
+python -m simulator -exp predator-chase --num-predators 2
+python -m simulator -exp predator-chase --num-predators 2 --predator-eat
+```
+
+### 6. Try the pygame renderer
 
 ```bash
 python -m simulator.visualisers.pygame_view 

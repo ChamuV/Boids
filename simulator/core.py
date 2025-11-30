@@ -1,11 +1,12 @@
 import numpy as np
-
 from dataclasses import dataclass
+
 
 @dataclass
 class CircleObstacle:
-    centre : np.ndarray  # shape (dim,)
-    radius : float
+    centre: np.ndarray  # shape (dim,)
+    radius: float
+
 
 class BoidSimulation:
     """
@@ -21,41 +22,47 @@ class BoidSimulation:
     """
 
     def __init__(
-            self,
-            n_boids: int = 50,
-            dim: int = 2,
+        self,
+        n_boids: int = 50,
+        dim: int = 2,
 
-            align_weight: float = 0.9,
-            cohesion_weight: float = 0.2,
-            separation_weight: float = 1.2,
+        align_weight: float = 0.9,
+        cohesion_weight: float = 0.2,
+        separation_weight: float = 1.2,
 
-            align_radius: float = 2.0,
-            cohesion_radius: float = 1.0,
-            separation_radius: float = 0.8,
+        align_radius: float = 2.0,
+        cohesion_radius: float = 1.0,
+        separation_radius: float = 0.8,
 
-            max_speed: float = 0.05,
-            max_force: float = 0.02,
+        # Calmer defaults
+        max_speed: float = 0.03,
+        max_force: float = 0.01,
 
-            world_size = (10.0, 10.0, 10.0),
+        world_size=(10.0, 10.0, 10.0),
 
-            obstacles = None,
-            obstacle_weight: float = 2.0,
-            obstacle_influence: float = 0.5,
+        obstacles=None,
+        obstacle_weight: float = 2.0,
+        obstacle_influence: float = 0.5,
 
-            cross_species_repulsion: float = 1.0,
+        cross_species_repulsion: float = 1.0,
 
-            num_predators: int = 0,
-            predator_radius: float = 2.5,
-            predator_speed_mult: float = 1.5,
-            kill_radius: float = 0.3,
-            predator_eat: bool = False,
+        # Predators
+        num_predators: int = 0,
+        predator_radius: float = 2.5,
+        predator_speed_mult: float = 1.5,
+        kill_radius: float = 0.3,
+        predator_eat: bool = False,
 
-            noise_std: float = 0.02,
+        # Noise & boundaries
+        noise_std: float = 0.005,          # smoother motion
+        boundary_mode: str = "wrap",       # "wrap", "bounce", "avoid"
+        wall_influence: float = 0.7,       # how close to wall avoidance kicks in
+        wall_weight: float = 1.0,          # strength of wall repulsion
 
-            rng: np.random.Generator | None = None
-        ):
+        rng: np.random.Generator | None = None,
+    ):
         assert dim in (2, 3), "Only 2D and 3D simulations are supported."
-        
+
         self.n = n_boids
         self.dim = dim
 
@@ -69,27 +76,38 @@ class BoidSimulation:
         self.cohesion_radius = cohesion_radius
         self.separation_radius = separation_radius
 
+        # Speed / force limits
         self.max_speed = max_speed
         self.max_force = max_force
 
+        # Boundary handling
+        if boundary_mode not in ("wrap", "bounce", "avoid"):
+            raise ValueError(f"Invalid boundary_mode: {boundary_mode}")
+        self.boundary_mode = boundary_mode
+        self.wall_influence = wall_influence
+        self.wall_weight = wall_weight
+
         self.noise_std = noise_std
 
+        # RNG
         self.rng = rng if rng is not None else np.random.default_rng()
 
+        # Obstacles
         self.obstacles = obstacles or []
         self.obstacle_weight = obstacle_weight
         self.obstacle_influence = obstacle_influence
 
+        # Species (for grouping / cross-species repulsion)
         self.cross_species_repulsion = cross_species_repulsion
         self.species = np.zeros(self.n, dtype=int)  # species IDs for each boid
 
+        # Predators
         self.num_predators = num_predators
         self.predator_radius = predator_radius
         self.predator_speed_mult = predator_speed_mult
         self.kill_radius = kill_radius
         self.predator_eat = predator_eat
 
-        # Predator indices + boolean mask
         if num_predators > 0:
             self.predator_ids = self.rng.choice(self.n, size=num_predators, replace=False)
         else:
@@ -102,14 +120,15 @@ class BoidSimulation:
         # World size (tuple of length dim)
         self.world_size = np.array(world_size[:dim])
 
-        # Initialize positions in the world by having a box
+        # Positions initialised uniformly in the box
         self.pos = self.rng.random((n_boids, dim)) * self.world_size
 
-        # Initialize velocities randomly as small vectors
-        angles = self.rng.random(n_boids) * 2 * np.pi
+        # Velocities initialised as small random directions
+        angles = self.rng.random(n_boids) * 2.0 * np.pi
         if dim == 2:
             self.vel = np.stack(
-                (np.cos(angles), np.sin(angles)), axis=1
+                (np.cos(angles), np.sin(angles)),
+                axis=1,
             ) * (0.5 * max_speed)
         else:  # dim == 3
             v = self.rng.normal(size=(n_boids, 3))
@@ -122,17 +141,18 @@ class BoidSimulation:
         if norm > maxval and norm > 0:
             return v * (maxval / norm)
         return v
-    
+
     def step(self) -> None:
         """Advance the simulation by one time step."""
         new_vel = np.zeros_like(self.vel)
 
+        # Loop over boids
         for i in range(self.n):
             p = self.pos[i]
             v = self.vel[i]
 
-                        # Offsets and distances to all other boids
-            offsets = self.pos - p        # shape (n, dim)
+            # Offsets and distances to all other boids
+            offsets = self.pos - p              # shape (n, dim)
             dists = np.linalg.norm(offsets, axis=1)
 
             # Accumulators for each rule
@@ -146,7 +166,7 @@ class BoidSimulation:
 
             si = self.species[i]  # species of this boid
 
-            # Loop over all other boids explicitly 
+            # Neighbour loop
             for j in range(self.n):
                 if j == i:
                     continue  # skip self
@@ -158,7 +178,6 @@ class BoidSimulation:
                 sj = self.species[j]
                 same_species = (si == sj)
 
-                # Same species: full boids rules
                 if same_species:
                     # Alignment: match average heading
                     if d < self.align_radius:
@@ -175,8 +194,8 @@ class BoidSimulation:
                         sep_sum -= offsets[j] / (d**2 + 1e-6)
                         cntS += 1
 
-                # Different species: only repulsion (stronger, slightly longer range) 
                 else:
+                    # Different species: only repulsion (stronger, slightly longer range)
                     cross_sep_radius = self.separation_radius * 1.5
                     if d < cross_sep_radius:
                         sep_sum -= (
@@ -184,7 +203,7 @@ class BoidSimulation:
                             * offsets[j] / (d**2 + 1e-6)
                         )
 
-            # Turn sums into rule vectors 
+            # Turn sums into rule vectors
             if cntA > 0:
                 align = align_sum / cntA
             else:
@@ -199,7 +218,8 @@ class BoidSimulation:
             if cntS > 0:
                 separation = sep_sum
             else:
-                separation = sep_sum  # might contain only cross-species repulsions
+                # may contain only cross-species repulsions
+                separation = sep_sum
 
             # Obstacle avoidance
             obstacle_force = np.zeros(self.dim)
@@ -220,7 +240,6 @@ class BoidSimulation:
 
             # Predator / prey dynamics
             predator_force = np.zeros(self.dim)
-
             is_predator = self.is_predator[i]
 
             if is_predator:
@@ -231,52 +250,65 @@ class BoidSimulation:
 
                     prey_positions = self.pos[prey_mask]
                     if prey_positions.size > 0:
-                        diffs = prey_positions - p
-                        dists = np.linalg.norm(diffs, axis=1)
+                        diffs_p = prey_positions - p
+                        dists_p = np.linalg.norm(diffs_p, axis=1)
 
-                        # Only consider prey within predator_radius
-                        within = dists < self.predator_radius
+                        within = dists_p < self.predator_radius
                         if np.any(within):
-                            # Vector towards nearest prey
-                            nearest_idx = np.argmin(dists)
-                            nearest_vec = diffs[nearest_idx]
-                            nearest_dist = dists[nearest_idx]
+                            nearest_idx = np.argmin(dists_p)
+                            nearest_vec = diffs_p[nearest_idx]
+                            nearest_dist = dists_p[nearest_idx]
 
                             if nearest_dist > 1e-8:
                                 predator_force += nearest_vec / nearest_dist
 
-                            # ---- OPTIONAL EATING ----
+                            # Optional "eat" behaviour
                             if self.predator_eat and nearest_dist < self.kill_radius:
-                                # Map back to global index of prey
                                 global_preys = np.where(prey_mask)[0]
                                 prey_index = global_preys[nearest_idx]
 
-                                # "Eat" prey: respawn somewhere random
+                                # Respawn prey randomly
                                 self.pos[prey_index] = (
                                     self.rng.random(self.dim) * self.world_size
                                 )
-                                # Give it a random small velocity
                                 v0 = self.rng.normal(size=self.dim)
                                 v0 /= (np.linalg.norm(v0) + 1e-8)
                                 self.vel[prey_index] = v0 * (0.5 * self.max_speed)
 
             else:
                 # Prey: flee from each predator within radius
-                for pid in getattr(self, "predator_ids", []):
+                for pid in self.predator_ids:
                     diff = self.pos[pid] - p
                     d = np.linalg.norm(diff)
                     if d < self.predator_radius and d > 1e-8:
                         flee = -diff / d
                         predator_force += 2.0 * flee   # strong flee
-            
-            # Combine with weights
+
+            # Wall avoidance for boundary_mode == "avoid"
+            wall_force = np.zeros(self.dim)
+            if self.boundary_mode == "avoid":
+                for d in range(self.dim):
+                    dist_left = p[d]
+                    dist_right = self.world_size[d] - p[d]
+
+                    if 0 < dist_left < self.wall_influence:
+                        strength = (self.wall_influence - dist_left) / self.wall_influence
+                        wall_force[d] += strength  # push + direction
+
+                    if 0 < dist_right < self.wall_influence:
+                        strength = (self.wall_influence - dist_right) / self.wall_influence
+                        wall_force[d] -= strength  # push - direction
+
+            # Combine forces
             steer = (
                 self.align_weight * align +
                 self.cohesion_weight * cohesion +
                 self.separation_weight * separation +
                 self.obstacle_weight * obstacle_force +
-                predator_force
+                predator_force +
+                self.wall_weight * wall_force
             )
+
             # Small random "wander"
             if self.noise_std > 0:
                 steer += self.rng.normal(scale=self.noise_std, size=self.dim)
@@ -290,9 +322,25 @@ class BoidSimulation:
 
             new_vel[i] = new_v
 
-        # Update velocities and positions
+        # update positions + boundaries
         self.vel = new_vel
         self.pos = self.pos + self.vel
 
-        # Wrap around world boundaries
-        self.pos = np.mod(self.pos, self.world_size)
+        if self.boundary_mode == "wrap":
+            # Torus: wrap positions
+            self.pos = np.mod(self.pos, self.world_size)
+
+        elif self.boundary_mode == "bounce":
+            # Reflect off walls
+            for i in range(self.n):
+                for d in range(self.dim):
+                    if self.pos[i, d] < 0.0:
+                        self.pos[i, d] = -self.pos[i, d]
+                        self.vel[i, d] *= -1.0
+                    elif self.pos[i, d] > self.world_size[d]:
+                        self.pos[i, d] = 2 * self.world_size[d] - self.pos[i, d]
+                        self.vel[i, d] *= -1.0
+
+        elif self.boundary_mode == "avoid":
+            # Clip inside; wall_force discourages hugging edges
+            self.pos = np.clip(self.pos, 0.0, self.world_size)
