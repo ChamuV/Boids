@@ -13,18 +13,46 @@ BLACK = (20, 20, 20)
 PRED_COLOR = (200, 60, 60)
 
 SPECIES_COLORS = [
-    (8, 48, 107),
-    (251, 106, 74),
-    (65, 171, 93),
-    (128, 125, 186),
-    (255, 217, 47),
-    (31, 120, 180),
+    (8, 48, 107),    # dark blue
+    (251, 106, 74),  # coral red
+    (65, 171, 93),   # green
+    (128, 125, 186), # purple
+    (255, 217, 47),  # yellow
+    (31, 120, 180),  # light blue
 ]
+
+
+def draw_triangle(surface, center, velocity, color, size=10):
+    """
+    Draw a rotated triangle at pixel position `center` (x, y),
+    pointing in the direction of `velocity`.
+    """
+    vx, vy = float(velocity[0]), float(velocity[1])
+    if abs(vx) < 1e-6 and abs(vy) < 1e-6:
+        angle = 0.0
+    else:
+        angle = np.arctan2(vy, vx)
+
+    # Base triangle in local coordinates (pointing along +x)
+    base = np.array([
+        [size, 0.0],                 # nose
+        [-size * 0.6,  size * 0.4],  # back top
+        [-size * 0.6, -size * 0.4],  # back bottom
+    ])
+
+    c, s = np.cos(angle), np.sin(angle)
+    R = np.array([[c, -s], [s, c]])
+    rotated = base @ R.T
+
+    rotated[:, 0] += center[0]
+    rotated[:, 1] += center[1]
+
+    pygame.draw.polygon(surface, color, rotated)
 
 
 def run_pygame_sandbox():
     # --- WINDOW LAYOUT ---
-    MAIN_W = 900   # boids world panel
+    MAIN_W = 900   # boids world panel width
     PANEL_W = 320  # control panel on the right
     HEIGHT  = 900
     WINDOW_SIZE = (MAIN_W + PANEL_W, HEIGHT)
@@ -61,8 +89,8 @@ def run_pygame_sandbox():
     panel_rect = pygame.Rect(MAIN_W, 0, PANEL_W, HEIGHT)
     side_panel = pygame_gui.elements.UIPanel(
         relative_rect=panel_rect,
-        starting_height=0,
-        manager=manager
+        starting_height=0,   # NOTE: pygame_gui changed arg name from starting_layer_height
+        manager=manager,
     )
 
     y = 20
@@ -154,10 +182,12 @@ def run_pygame_sandbox():
     # Info label (obstacle radius etc.)
     lbl_info = pygame_gui.elements.UILabel(
         relative_rect=pygame.Rect(x_label, y, width_slider, 60),
-        text="Mouse wheel: change obstacle radius\n"
-             "Left-click: obstacle, Shift+Left: predator\n"
-             "P near boid: set species, 1–9 choose species\n"
-             "SPACE: pause, B: boundary wrap/bounce/avoid",
+        text=(
+            "Mouse wheel: change obstacle radius\n"
+            "Left-click: obstacle, Shift+Left: predator\n"
+            "P near boid: set species, 1–9 choose species\n"
+            "SPACE: pause, B: boundary wrap/bounce/avoid"
+        ),
         container=side_panel,
         manager=manager,
     )
@@ -247,7 +277,7 @@ def run_pygame_sandbox():
                         noise_std=slider_noise.get_current_value(),
                         boundary_mode=sim.boundary_mode,
                     )
-                    # Reset obstacle radius
+                    # Reset obstacle radius and species
                     current_obstacle_radius = 0.4
                     active_species = 0
 
@@ -255,7 +285,7 @@ def run_pygame_sandbox():
                     sim.obstacles = []
 
             if event.type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION:
-                # handled generically below when reading checkbox state
+                # handled below by reading checkbox state each frame
                 pass
 
         # --- Update sim parameters from sliders / checkbox ---
@@ -294,13 +324,22 @@ def run_pygame_sandbox():
         for i in range(sim.n):
             x_pix = int(sim.pos[i, 0] * scale_x)
             y_pix = HEIGHT - int(sim.pos[i, 1] * scale_y)
+            center = (x_pix, y_pix)
 
             if sim.is_predator[i]:
-                pygame.draw.circle(screen, PRED_COLOR, (x_pix, y_pix), 8)
+                # Predators: circles
+                pygame.draw.circle(screen, PRED_COLOR, center, 9)
             else:
+                # Prey: species-coloured triangles
                 s_id = int(sim.species[i])
                 color = SPECIES_COLORS[s_id % len(SPECIES_COLORS)]
-                pygame.draw.circle(screen, color, (x_pix, y_pix), 5)
+                draw_triangle(
+                    surface=screen,
+                    center=center,
+                    velocity=sim.vel[i],
+                    color=color,
+                    size=10,
+                )
 
         # Remove clip and draw UI on the right panel
         screen.set_clip(None)
